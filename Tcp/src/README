@@ -1,0 +1,66 @@
+=======================================================================
+Transport Protocol Emulation
+
+Author: Daniel Zappala, Brigham Young University
+  
+This code is licensed under the GPL; see LICENSE for details.
+=======================================================================
+
+This code shows how to build a transport protocol in Python using an
+emulated link. The code consists of the following:
+
+* link.py
+
+  Implements an emulated link using a UDP socket between two
+  processes. The link properties that are emulated include buffer
+  size, bandwidth, and propagation delay. The supported methods are:
+
+  enqueue(id,packet):
+
+     Add a packet to the link's outgoing buffer, with the given
+     id. The id is used for logging purposes only, so that you can
+     obtain a trace of when packets are enqueued, dequeued, and
+     dropped.
+
+  dequeue(timeout):
+
+     Remove a packet from the link's incoming buffer and return it. If
+     no packet is available, this will wait for the given timeout
+     period before returning None. If timeout is None, then this
+     method will wait indefinitely.
+
+  idle():
+
+     Waits until the link is idle before returning. This is useful
+     when emulating a link so that the program does not exit until all
+     packets have been transmitted.
+
+* log.py
+
+  Logs strings to a file. Thread safe.
+
+* udp.py
+
+  Implements a basic UDP protocol, including a UDP demultiplexer
+  (directs incoming packets to a socket based on the port number) and
+  a UDP socket. Includes a UDP packet header that is packed into
+  binary. Does not use IP -- packets are sent directly over the
+  link. Does not use the checksum.
+
+* source.py
+
+  Implements a basic UDP source. Demonstrates the ability to have
+  multiple sockets active at the same time.
+
+* dest.py
+
+  Implements a basic UDP destination. Demonstrates the ability to have
+  multiple sockets active at the same time.
+
+To run the code, in one terminal:
+
+  python dest.py
+
+in another terminal:
+
+  python source.py
