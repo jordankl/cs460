@@ -24,8 +24,8 @@ class Source:
         self.socket2 = TCPSocket(link,self.tcp,size,2,2)
 
     def start(self):
-        self.socket2.send("hello 2qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq")
-        self.socket1.send("hello 12qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq")
+        self.socket2.send("hello 2")
+        self.socket1.send("hello 1")
         # wait for link to be idle before ending
         self.link.idle()
 
