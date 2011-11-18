@@ -102,14 +102,18 @@ class TCPSocket:
     def segmentData(self,data):
         """ Segment the Data"""
         index = 0;
+        id = 1
+        totalPackets = len(data)/self.packetsize
+        totalPackets += 0 if (len(data)%self.packetsize == 0) else 1        
         while (index < len(data)):
             if ((index+self.packetsize)<len(data)):
-                self.packets.append(self.makepacket(data[index:(index+self.packetsize)]))
+                self.packets.append(self.makepacket(data[index:(index+self.packetsize)],id,totalPackets))
             else:
-                self.packets.append(self.makepacket(data[index:len(data)]))
-            index += self.packetsize    
+                self.packets.append(self.makepacket(data[index:len(data)],id,totalPackets))
+            index += self.packetsize
+            id +=1    
                             
-    def makepacket(self,data):
+    def makepacket(self,data,id,totalPackets):
         u = TCPPacket()
         u.sourcePort = self.sourcePort
         u.destPort = self.destPort
@@ -117,15 +121,20 @@ class TCPSocket:
         u.data = data
         # ignore checksum
         u.cksum = 0
+        u.id = id
+        u.totalPackets = totalPackets
         packet = u.pack()
         return packet
             
     # receiving data
     def recv(self,timeout):
         msg ='';
-        u.data = 'will be overwritted'
-        while()
-        
+        data = 'will be overwritted'
+        flag = False
+        while(flag != True):
+            data,flag = self.recvAll(timeout)
+            msg += data
+        return msg        
     
     def recvAll(self,timeout):
         """ Receive a TCP packet and return the data. If no data is
@@ -133,14 +142,17 @@ class TCPSocket:
         
         packet = self.buffer.get(True,timeout)
         u = TCPPacket()
+        lastPacket = False
         try:        
             u.unpack(packet)
+            if(u.id == u.totalPackets):
+                lastPacket = True
         except:
             print "Exception: unpacking a TCP packet"
             print "  ",sys.exc_info()[0],sys.exc_info()[1]
             return
 
-        return u.data
+        return u.data,lastPacket
 
 
 class TCPPacket:
@@ -154,21 +166,23 @@ class TCPPacket:
         self.destPort = 0
         self.len = 0
         self.cksum = 0
+        self.id = 0
+        self.totalPackets = 0
         self.data = ''
 
         # packing information
-        self.format = "!HHHH    "
+        self.format = "!HHHHHH    "
         self.headerlen = struct.calcsize(self.format)
 
     def pack(self):
         """ Create a string from a TCP packet """
         string = struct.pack(self.format,self.sourcePort,self.destPort,
-                             self.len,self.cksum)
+                             self.len,self.cksum,self.id,self.totalPackets)
         return string + self.data
 
     def unpack(self,string):
         """ Create a TCP packet from a string """
         # unpack the header fields
-        (self.sourcePort,self.destPort,self.len,self.cksum) = struct.unpack(self.format,string[0:self.headerlen])
+        (self.sourcePort,self.destPort,self.len,self.cksum,self.id,self.totalPackets) = struct.unpack(self.format,string[0:self.headerlen])
         # unpack the data
         self.data = string[self.headerlen:]
