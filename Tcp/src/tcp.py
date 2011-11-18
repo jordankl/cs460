@@ -83,17 +83,32 @@ class TCPSocket:
         self.destPort = destPort
         self.tcp = tcp
         self.tcp.bind(sourcePort,self)
+        self.packets = []
+        self.packetsize = 1024
 
     # sending data
     def send(self,data):
         """ Send a TCP packet. """
         # make a packet
-        packet = self.makepacket(data)
+        self.segmentData(data)
+        print self.packets
         # send the packet
         id = 0
-        self.link.enqueue(id,packet)
+        for packet in self.packets: 
+            self.link.enqueue(id,packet)
+            id += 1
         return len(data)
-
+    
+    def segmentData(self,data):
+        """ Segment the Data"""
+        index = 0;
+        while (index < len(data)):
+            if ((index+self.packetsize)<len(data)):
+                self.packets.append(self.makepacket(data[index:(index+self.packetsize)]))
+            else:
+                self.packets.append(self.makepacket(data[index:len(data)]))
+            index += self.packetsize    
+                            
     def makepacket(self,data):
         u = TCPPacket()
         u.sourcePort = self.sourcePort
@@ -107,8 +122,15 @@ class TCPSocket:
             
     # receiving data
     def recv(self,timeout):
+        msg ='';
+        u.data = 'will be overwritted'
+        while()
+        
+    
+    def recvAll(self,timeout):
         """ Receive a TCP packet and return the data. If no data is
         available, wait indefinitely for the next available packet."""
+        
         packet = self.buffer.get(True,timeout)
         u = TCPPacket()
         try:        
@@ -135,7 +157,7 @@ class TCPPacket:
         self.data = ''
 
         # packing information
-        self.format = "!HHHH"
+        self.format = "!HHHH    "
         self.headerlen = struct.calcsize(self.format)
 
     def pack(self):

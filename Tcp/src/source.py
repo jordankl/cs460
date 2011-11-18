@@ -24,8 +24,22 @@ class Source:
         self.socket2 = TCPSocket(link,self.tcp,size,2,2)
 
     def start(self):
-        self.socket2.send("hello 2")
-        self.socket1.send("hello 1")
+        packetsize = 1024
+        numOfPackets = 10
+        f = open('TestFile','r+')
+        count = 1
+        msg = f.read();
+        if (msg == ''):
+            while (numOfPackets>0):
+                while (count<packetsize):
+                    msg += ('H')  
+                    count += 1
+                numOfPackets -= 1 
+                count = 1
+            f.write(msg)            
+            msg = f.read();
+        self.socket1.send(msg)
+        self.socket2.send("hello 1")
         # wait for link to be idle before ending
         self.link.idle()
 
