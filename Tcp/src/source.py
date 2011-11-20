@@ -25,7 +25,7 @@ class Source:
 
     def start(self):
         packetsize = 1024
-        numOfPackets = 100
+        numOfPackets = 1000
         f = open('TestFile','r+')
         count = 1
         msg = f.read()

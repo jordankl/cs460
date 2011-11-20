@@ -86,18 +86,25 @@ class TCPSocket:
         self.tcp.bind(sourcePort,self)
         self.packets = []
         self.packetsize = 1024
-
+        self.acks = []
+        self.window = 100
+        self.timeout = 1
     # sending data
     def send(self,data):
         """ Send a TCP packet. """
         # make a packet
         self.segmentData(data)
-        ackIDs = self.sendPackets(None)
-        while (len(ackIDs)!= 0):   
-            ackIDs = self.sendPackets(ackIDs)
+        ackIDs = self.sendPackets(None,True) 
+        #print len(ackIDs)
+        count = 0
+        while (len(ackIDs)!= 0) and (count < 5) :
+            prevIDs = len(ackIDs)
+            ackIDs = self.sendPackets(ackIDs,False)
+            if(len(ackIDs) == prevIDs):
+                count += 1
         return len(data)
     
-    def sendPackets(self,ids):        
+    def sendPackets(self,ids,newMsg):        
         # send the packet
         if(ids == None):
             id = 0        
@@ -105,9 +112,15 @@ class TCPSocket:
                 self.link.enqueue(id,packet)
                 id += 1
         else:
-            for id in ids:
-                self.link.enqueue(id,self.packets[id])
-        return self.recvAcks(10)
+            count = 0
+            for ackID in ids:
+                if(count < self.window):
+                    #print ackID
+                    self.link.enqueue(ackID,self.packets[ackID-1])
+                else:
+                    break
+                count += 1
+        return self.recvAcks(self.timeout,newMsg)
     
     def segmentData(self,data):
         """ Segment the Data"""
@@ -164,25 +177,27 @@ class TCPSocket:
                 break
         return msg        
     
-    def recvAcks(self,timeout):
-        acks= {}
+    def recvAcks(self,timeout,newMsg):
+        if(newMsg):
+            self.acks= {}
         while(True):
             try:
                 p = self.recvPacket(timeout)
                 if(p != None): 
-                    if(not acks.has_key(p.id)):
-                        acks[p.id] = p
-                    if(self.checkRecvAll(acks,p.totalPackets)):  
+                    if(not self.acks.has_key(p.id)):
+                        self.acks[p.id] = p
+                    if(self.checkRecvAll(self.acks,p.totalPackets)):  
                         return []
                 else:                
                     break
             except:
-                return []
-        return self.checkAcks(acks,len(self.packets))     
+                return self.checkAcks(self.acks,len(self.packets))   
+        return self.checkAcks(self.acks,len(self.packets))     
     
     def checkAcks(self,packets,total):            
         index = 1;
         ackIDs = []
+        #print total
         while (index <= total):
             if(not packets.has_key(index)):
                 ackIDs.append(index)
@@ -208,8 +223,10 @@ class TCPSocket:
         except:
             print "Exception: unpacking a TCP packet"
             print "  ",sys.exc_info()[0],sys.exc_info()[1]
-            return        
-        self.makeAndSendAck(u)                   
+            return
+        if(u.data != "Ack"):        
+            self.makeAndSendAck(u) 
+        #print 'ID: '+str(u.id)+' Data: '+u.data                  
         return u
 
 
