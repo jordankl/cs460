@@ -25,15 +25,16 @@ class Source:
 
     def start(self):
         packetsize = 1024
-        numOfPackets = 10
+        numOfPackets = 100
         f = open('TestFile','r+')
         count = 1
-        msg = f.read();
+        msg = f.read()
         if (msg == ''):
             while (numOfPackets>0):
                 while (count<packetsize):
-                    msg += ('H')  
+                    msg += 'H'  
                     count += 1
+                msg += '\n'
                 numOfPackets -= 1 
                 count = 1
             f.write(msg)            

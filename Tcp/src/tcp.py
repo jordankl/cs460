@@ -11,6 +11,7 @@ import Queue
 import struct
 import sys
 import threading
+import time
 
 __all__ = [ "TCP","TCPSocket" ]
 
@@ -91,13 +92,22 @@ class TCPSocket:
         """ Send a TCP packet. """
         # make a packet
         self.segmentData(data)
-        print self.packets
-        # send the packet
-        id = 0
-        for packet in self.packets: 
-            self.link.enqueue(id,packet)
-            id += 1
+        ackIDs = self.sendPackets(None)
+        while (len(ackIDs)!= 0):   
+            ackIDs = self.sendPackets(ackIDs)
         return len(data)
+    
+    def sendPackets(self,ids):        
+        # send the packet
+        if(ids == None):
+            id = 0        
+            for packet in self.packets: 
+                self.link.enqueue(id,packet)
+                id += 1
+        else:
+            for id in ids:
+                self.link.enqueue(id,self.packets[id])
+        return self.recvAcks(10)
     
     def segmentData(self,data):
         """ Segment the Data"""
@@ -125,34 +135,82 @@ class TCPSocket:
         u.totalPackets = totalPackets
         packet = u.pack()
         return packet
+    
+    def makeAndSendAck(self,packet):
+        ack = TCPPacket()
+        ack.sourcePort = packet.destPort
+        ack.destPort = packet.sourcePort
+        ack.data = "Ack"
+        ack.len = len(ack.data) + 8
+        ack.cksum = 0
+        ack.id = packet.id
+        ack.totalPackets = packet.totalPackets
+        packet = ack.pack()
+        self.link.enqueue(ack.id,packet)
             
     # receiving data
     def recv(self,timeout):
         msg ='';
-        data = 'will be overwritted'
         flag = False
-        while(flag != True):
-            data,flag = self.recvAll(timeout)
-            msg += data
+        packets= {}
+        while(not flag):
+            p = self.recvPacket(timeout)
+            if(p != None): 
+                if(not packets.has_key(p.id)):
+                    packets[p.id] = p
+                    msg += p.data
+                flag = self.checkRecvAll(packets,p.totalPackets)
+            else:
+                break
         return msg        
     
-    def recvAll(self,timeout):
-        """ Receive a TCP packet and return the data. If no data is
-        available, wait indefinitely for the next available packet."""
+    def recvAcks(self,timeout):
+        acks= {}
+        while(True):
+            try:
+                p = self.recvPacket(timeout)
+                if(p != None): 
+                    if(not acks.has_key(p.id)):
+                        acks[p.id] = p
+                    if(self.checkRecvAll(acks,p.totalPackets)):  
+                        return []
+                else:                
+                    break
+            except:
+                return []
+        return self.checkAcks(acks,len(self.packets))     
+    
+    def checkAcks(self,packets,total):            
+        index = 1;
+        ackIDs = []
+        while (index <= total):
+            if(not packets.has_key(index)):
+                ackIDs.append(index)
+            index += 1
+        return ackIDs       
         
+    
+    def checkRecvAll(self,packets,total):
+        index = 1;
+        while (index <= total):
+            if(not packets.has_key(index)):
+                return False
+            index += 1
+        return True                    
+    
+    def recvPacket(self,timeout):
+        """ Receive a TCP packet and return the data. If no data is
+        available, wait indefinitely for the next available packet."""        
         packet = self.buffer.get(True,timeout)
         u = TCPPacket()
-        lastPacket = False
         try:        
             u.unpack(packet)
-            if(u.id == u.totalPackets):
-                lastPacket = True
         except:
             print "Exception: unpacking a TCP packet"
             print "  ",sys.exc_info()[0],sys.exc_info()[1]
-            return
-
-        return u.data,lastPacket
+            return        
+        self.makeAndSendAck(u)                   
+        return u
 
 
 class TCPPacket:
