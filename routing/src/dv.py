@@ -8,6 +8,14 @@ class DV:
         """
         self.router = router
         self.router.register_handler('dv',self)
+        self.dv()
+
+    def dv(self):
+        for r in self.router.get_neighbors():
+            print self.router.id+":"+r
+            self.router.send_packet(r,"dv",self.router.id,False)
         
-    def receive(self,router,data,path):
-        print "Data: "+data+"\n Path: "+path
+    def receive(self,id,data,path):
+        print "Data: "+data
+        if path:
+            print "Path: "+path
