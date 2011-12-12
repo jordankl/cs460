@@ -1,0 +1,14 @@
+======================================================================
+Virtual Routing
+======================================================================
+
+This code contains:
+
+router.py     -- a virtual router
+ping.py       -- a ping application
+dv.py         -- stubs for a distance vector routing application
+controller.py -- a controller that reads in a network configuration file,
+                 creates the network and applications, and provides a
+                 command line interface to stop and start routers.
+test.conf     -- a sample network configuration file
+
